@@ -1,0 +1,19 @@
+{
+  "profiles": {
+    "_build": {
+      "commandName": "Project",
+      "commandLineArgs": "--repo-path .\\python-pip\\",
+      "workingDirectory": "$(ProjectDir)/../tests/Newk.Tests/_files"
+    },
+    "PythonWithMkDocs": {
+      "commandName": "Project",
+      "commandLineArgs": "--repo-path .\\python-pip-mkdocs\\",
+      "workingDirectory": "$(ProjectDir)/../tests/Newk.Tests/_files"
+    },
+    "PythonWithProcfile": {
+      "commandName": "Project",
+      "commandLineArgs": "--repo-path .\\python-pip-procfile\\",
+      "workingDirectory": "$(ProjectDir)/../tests/Newk.Tests/_files"
+    }
+  }
+}
