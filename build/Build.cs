@@ -12,6 +12,7 @@ using Nuke.Common.Tooling;
 using Nuke.Common.Tools.DotNet;
 using Nuke.Common.Utilities.Collections;
 using Octokit;
+using Serilog;
 using Services;
 using static Nuke.Common.EnvironmentInfo;
 using static Nuke.Common.IO.FileSystemTasks;
@@ -30,41 +31,105 @@ class Build : NukeBuild
     [Parameter("Local path to git project")]
     readonly AbsolutePath repoPath = default!;
 
-    // Static
+    // Analyzer Helpers
 
-    private Analyzer _analyzer = default!;
+    private AnalyzerResult _analyzerResult = default!;
 
-    private Analyzer Analyzer()
+    private bool IsDotNetProject => _analyzerResult.TargetTypes.Contains(TargetType.DotNet);
+    private bool IsPythonPipProject => _analyzerResult.TargetTypes.Contains(TargetType.PythonPip);
+    private bool IsMkDocsProject => _analyzerResult.TargetTypes.Contains(TargetType.MkDocs);
+
+
+    protected override void OnBuildInitialized()
     {
-        if (_analyzer is null)
-        {
-            _analyzer = new Analyzer(repoPath);
-        }
-        return _analyzer;
+        base.OnBuildInitialized();
+
+        Log.Information("Analysing project...");
+        _analyzerResult ??= Analyzer.Analyze(repoPath);
     }
 
-    // Dynamic Steps
 
-    Target Begin => _ => _
+    Target Start => _ => _
         .Executes(() => _);
 
+    Target End => _ => _
+    .Executes(() => _);
+
+
+    #region PythonPip
+
     Target RestorePip => _ => _
-        .DependsOn(Begin)
-        .OnlyWhenStatic(() => Analyzer().TargetTypes.Contains(TargetType.PythonPip))
-        .Executes(() => Console.WriteLine("pip install -r requirements.txt"));
+        .DependsOn(Start)
+        .DependentFor(End)
+        .OnlyWhenStatic(() => IsPythonPipProject)
+        .Executes(() => Log.Information("pip install -r requirements.txt"));
+
+    #endregion PythonPip
+
+
+    #region MkDocs
 
     Target BuildMkDocs => _ => _
-        .DependsOn(Begin)
-        .OnlyWhenStatic(() => Analyzer().TargetTypes.Contains(TargetType.MkDocs))
-        .Executes(() => Console.WriteLine("mkdocs build"));
+        .DependsOn(Start)
+        .OnlyWhenStatic(() => IsMkDocsProject)
+        .Executes(() => Log.Information("mkdocs build"));
+
 
     Target PublishMkDocs => _ => _
         .DependsOn(BuildMkDocs)
-        .OnlyWhenStatic(() => Analyzer().TargetTypes.Contains(TargetType.MkDocs))
-        .Executes(() => Console.WriteLine("mkdocs publish"));
+        .DependentFor(End)
+        .OnlyWhenStatic(() => IsMkDocsProject)
+        .Executes(() => Log.Information("mkdocs publish"));
 
-    Target End => _ => _
-        .DependsOn(PublishMkDocs,RestorePip)
-        .Executes(() => _);
+    #endregion MkDocs
+
+
+    #region DotNet
+
+    Target BrandDotNet => _ => _
+        .DependsOn(Start)
+        .OnlyWhenStatic(() => IsDotNetProject)
+        .Executes(() => Log.Information("dotnet-gitversion"));
+
+    Target RestoreDotNet => _ => _
+        .DependsOn(BrandDotNet)
+        .OnlyWhenStatic(() => IsDotNetProject)
+        .Executes(() => Log.Information("dotnet restore"));
+
+    Target BuildDotNet => _ => _
+        .DependsOn(RestoreDotNet)
+        .OnlyWhenStatic(() => IsDotNetProject)
+        .Executes(() => Log.Information("dotnet build --no-restore"));
+
+    Target UnitTestDotNet => _ => _
+        .DependsOn(BuildDotNet)
+        .OnlyWhenStatic(() => IsDotNetProject)
+        .Executes(() => Log.Information("dotnet test"));
+
+    Target PublishDotNet => _ => _
+        .DependsOn(UnitTestDotNet)
+        .OnlyWhenStatic(() => IsDotNetProject)
+        .Executes(() => Log.Information("dotnet publish"));
+
+    Target PackageDotNet => _ => _
+        .DependsOn(PublishDotNet)
+        .OnlyWhenStatic(() => IsDotNetProject)
+        .Executes(() => Log.Information("dotnet package"));
+
+    Target DeliverDotNet => _ => _
+        .DependsOn(PackageDotNet)
+        .OnlyWhenStatic(() => IsDotNetProject)
+        .Executes(() => Log.Information("dotnet deliver"));
+
+    Target DeployDotNet => _ => _
+        .DependsOn(DeliverDotNet)
+        .DependentFor(End)
+        .OnlyWhenStatic(() => IsDotNetProject)
+        .Executes(() => Log.Information("dotnet deploy"));
+
+
+    #endregion DotNet
+
+
 
 }

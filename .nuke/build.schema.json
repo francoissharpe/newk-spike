@@ -68,11 +68,19 @@
           "items": {
             "type": "string",
             "enum": [
-              "Begin",
+              "BrandDotNet",
+              "BuildDotNet",
               "BuildMkDocs",
+              "DeliverDotNet",
+              "DeployDotNet",
               "End",
+              "PackageDotNet",
+              "PublishDotNet",
               "PublishMkDocs",
-              "RestorePip"
+              "RestoreDotNet",
+              "RestorePip",
+              "Start",
+              "UnitTestDotNet"
             ]
           }
         },
@@ -82,11 +90,19 @@
           "items": {
             "type": "string",
             "enum": [
-              "Begin",
+              "BrandDotNet",
+              "BuildDotNet",
               "BuildMkDocs",
+              "DeliverDotNet",
+              "DeployDotNet",
               "End",
+              "PackageDotNet",
+              "PublishDotNet",
               "PublishMkDocs",
-              "RestorePip"
+              "RestoreDotNet",
+              "RestorePip",
+              "Start",
+              "UnitTestDotNet"
             ]
           }
         },
