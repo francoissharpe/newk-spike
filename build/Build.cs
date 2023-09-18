@@ -39,6 +39,18 @@ class Build : NukeBuild
     private bool IsPythonPipProject => _analyzerResult.TargetTypes.Contains(TargetType.PythonPip);
     private bool IsMkDocsProject => _analyzerResult.TargetTypes.Contains(TargetType.MkDocs);
 
+    [LocalPath("pack")]
+    readonly Tool Pack;
+
+    [LocalPath("pip")]
+    readonly Tool Pip;
+
+    [LocalPath("python")]
+    readonly Tool Python;
+
+    [LocalPath("pyenv")]
+    readonly Tool Pyenv;
+
 
     protected override void OnBuildInitialized()
     {
@@ -85,7 +97,7 @@ class Build : NukeBuild
 
 
     #region DotNet
-
+    
     Target BrandDotNet => _ => _
         .DependsOn(Start)
         .OnlyWhenStatic(() => IsDotNetProject)
@@ -94,7 +106,12 @@ class Build : NukeBuild
     Target RestoreDotNet => _ => _
         .DependsOn(BrandDotNet)
         .OnlyWhenStatic(() => IsDotNetProject)
-        .Executes(() => Log.Information("dotnet restore"));
+        .Executes(() =>
+            {
+                Log.Information("dotnet restore");
+                DotNetTasks.DotNetRestore();
+            }
+        );
 
     Target BuildDotNet => _ => _
         .DependsOn(RestoreDotNet)
@@ -129,7 +146,5 @@ class Build : NukeBuild
 
 
     #endregion DotNet
-
-
 
 }
